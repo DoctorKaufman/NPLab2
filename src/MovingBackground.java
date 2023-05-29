@@ -154,6 +154,8 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	private int c = 0;
 
 	private boolean allowEndSound = true;
+	
+	int div = 5;
 
 	/**
 	 * Class constructor (starts the GUI and timer animations)
@@ -170,7 +172,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 		this.frameWidth = ImageIO.read(new File("run1.png")).getWidth()/10;
 		this.frameHeight = ImageIO.read(new File("run1.png")).getHeight()/10;
 
-		x = 10 + frameWidth/4;
+		x = 10 + frameWidth/div;
 		//int y = this.getHeight()-this.frameHeight - currentY -;
 		y = 960 -this.frameHeight + 30 - currentY;
 		System.out.println(x);
@@ -360,9 +362,9 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					enableCrouch = true;
 					running = 1;
 					currentY = 0;
-					x = 10 + frameWidth/4;
+					x = 10 + frameWidth/div;
 					//int y = this.getHeight()-this.frameHeight - currentY -;
-					y = 960 -this.frameHeight + 30 - currentY;
+					y = 960 - this.frameHeight + 30 - currentY;
 					System.out.println(x);
 					System.out.println(y);
 					width = frameWidth/2;
@@ -422,27 +424,30 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					}
 					else {
 						if (f1 == 0) {
-							x = 10 + frameWidth/4;
+							x = 10 + frameWidth/div;
 							//int y = this.getHeight()-this.frameHeight - currentY -;
-							y = 960 - this.frameHeight + 30 - currentY;
+							//y = 960 - this.frameHeight + 30 - currentY;
+							y = 960 - this.frameHeight + 30;
 							System.out.println(x);
 							System.out.println(y);
 							width = frameWidth/2;
 							height = 350;
 						}
 						if (f1 == 0) {
-							x = 10 + frameWidth/4;
+							x = 10 + frameWidth/div;
 							//int y = this.getHeight()-this.frameHeight - currentY -;
-							y = 960 -this.frameHeight + 30 + 55 + 25 - currentY;
+							//y = 960 -this.frameHeight + 30 + 55 + 25 - currentY;
+							y = 960 -this.frameHeight + 30 + 55;
 							System.out.println(x);
 							System.out.println(y);
 							width = frameWidth/2;
 							height = 350 - 55;
 						}
 						if (f1 == 1) {
-							x = 10 + frameWidth/4;
+							x = 10 + frameWidth/div;
 							//int y = this.getHeight()-this.frameHeight - currentY -;
-							y = 960 - this.frameHeight + 30 + 125 + 25 - currentY;
+							//y = 960 - this.frameHeight + 30 + 125 + 25 - currentY;
+							y = 960 - this.frameHeight + 30 + 125;
 							System.out.println(x);
 							System.out.println(y);
 							width = frameWidth/2;
@@ -456,9 +461,10 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			else {
 				//f1--;
 				if(f1 == 2 || f1== 3) {
-					x = 10 + frameWidth/4;
+					x = 10 + frameWidth/div;
 					//int y = this.getHeight()-this.frameHeight - currentY -;
-					y = 960 - this.frameHeight + 30 + 55 + 25 - currentY;
+					//y = 960 - this.frameHeight + 30 + 55 + 25 - currentY;
+					y = 960 - this.frameHeight + 30 + 55;
 					System.out.println(x);
 					System.out.println(y);
 					width = frameWidth/2;
@@ -467,9 +473,10 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					repaint();
 				}
 				else if (f1 == 1) {
-					x = 10 + frameWidth/4;
+					x = 10 + frameWidth/div;
 					//int y = this.getHeight()-this.frameHeight - currentY -;
-					y = 960 - this.frameHeight + 30 + 25 - currentY;
+					//y = 960 - this.frameHeight + 30 + 25 - currentY;
+					y = 960 - this.frameHeight + 30;
 					System.out.println(x);
 					System.out.println(y);
 					width = frameWidth/2;
@@ -598,8 +605,9 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					running = 2;
 					enableJump = false;
 					enableCrouch = false;
-					x = 10 + frameWidth/4;
-					y = 960 -this.frameHeight + 30 - currentY;
+					x = 10 + frameWidth/div;
+					//y = 960 -this.frameHeight + 30 - currentY;
+					y = 960 - this.frameHeight + 30;
 					System.out.println(x);
 					System.out.println(y);
 					width = frameWidth/2;
@@ -703,30 +711,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 */
 	public Dimension getPreferredSize() {
 		return new Dimension(backgroundImage1.getWidth(null), backgroundImage1.getHeight(null));
-	}
-
-	/**
-	 * @deprecated
-	 * @param imagePath
-	 * @param x
-	 * @return boolean
-	 */
-	public static boolean hasBlackPixelOnVerticalLine(String imagePath, int x) {
-		try {
-			BufferedImage image = ImageIO.read(new File(imagePath));
-			int height = image.getHeight();
-
-			for (int y = 0; y < height; y++) {
-				Color pixelColor = new Color(image.getRGB(x, y));
-				if (pixelColor.equals(Color.BLACK)) {
-					return true;
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return false;
 	}
 
 	/**
