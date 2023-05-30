@@ -99,7 +99,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	/**
 	 * Current delta from start position (OY axis)
 	 */
-	private int currentY = 0;
+	private int currentDeltaY = 0;
 	
 	private int targetY;
 	private int direction;
@@ -155,10 +155,16 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 	private boolean allowEndSound = true;
 	
+	/**
+	 * Padding regulation (for collision mask)
+	 */
 	int div = 4;
 	
 	double widthMaskSetting = 2.5;
 	
+	/**
+	 * Padding regulation (for collision mask)
+	 */
 	int paddingStart = 20;
 
 	/**
@@ -168,22 +174,20 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 * @throws IOException
 	 * @author Krasovskyy Andrii
 	 */
-	public MovingBackground(int n, int t) throws IOException {
+	public MovingBackground(int t) throws IOException {
 
 		KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
 		manager.addKeyEventDispatcher(this);
 
+		//Встановлюємо розмір кадру анімації персонажа
 		this.frameWidth = ImageIO.read(new File("run1.png")).getWidth()/10;
 		this.frameHeight = ImageIO.read(new File("run1.png")).getHeight()/10;
 
-		//x = 10 + frameWidth/div;
+		//Встановлюємо координати маски колізії та її розмір (для персонажа)
 		x = paddingStart + frameWidth/div;
-		//x = paddingStart + (int) Math.floor(frameWidth/div);
-		//int y = this.getHeight()-this.frameHeight - currentY -;
-		y = 960 - this.frameHeight + 30 - currentY;
+		y = 960 - this.frameHeight + 30 - currentDeltaY;
 		System.out.println(x);
 		System.out.println(y);
-		//width = frameWidth/2;
 		width = (int) (frameWidth/widthMaskSetting);
 		height = 350;
 
@@ -206,30 +210,9 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 		jump = ImageIO.read(new File("jump.png"));
 
-		int panelHeight = getHeight();
-		//startY = panelHeight-this.frameHeight;
-		currentY = 0;
-		//targetY = 100;
+		//Параметри для стрибка
+		currentDeltaY = 0;
 		direction = -15;
-
-		// Загрузка изображения фона
-		/**backgroundImage1 = new ImageIcon("city_normal.png").getImage();
-
-        backgroundImage2 = new ImageIcon("city_normal.png").getImage();
-
-        backgroundImage3 = new ImageIcon("city_sky.png").getImage();*/
-
-		/**backgroundImage1 = new ImageIcon("Game_city1_city.png").getImage().getScaledInstance(1800, 960, 0);
-
-        backgroundImage2 = new ImageIcon("Game_city1_back_city.png").getImage().getScaledInstance(1800, 960, 0);
-
-        backgroundImage3 = new ImageIcon("Game_city1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);*/
-
-		/**backgroundImage1 = new ImageIcon("Game_suburb1_city_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-        backgroundImage2 = new ImageIcon("Game_suburb1_back_city_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-        backgroundImage3 = new ImageIcon("Game_suburb1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);*/
 
 		backgroundImage1 = new ImageIcon("Game_village1_village_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
 
@@ -237,17 +220,15 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 		backgroundImage3 = new ImageIcon("Game_village1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
 
-		//xCoordinate = 0;
+		xCoordinate1 = 0;
 
-		xCoordinate1 = n;
+		xCoordinate2 = 0;
 
-		xCoordinate2 = n;
+		xCoordinate3 = 0;
 
-		xCoordinate3 = n;
-
-		//Timer timer = new Timer(10, e -> {
 		//Timer for background movement
 		Timer timer = new Timer(t, e -> {
+			//Тут ми рухаємо фон
 			xCoordinate1 -= 3;
 
 			xCoordinate2 -= 2;
@@ -274,19 +255,14 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				player.stop();
 				playerThread.interrupt();
 				end = true;
-				//timer.stop();
 				if (end == true && allowEndSound  == true) {
 					allowEndSound = false;
 				
 					playerThread = new Thread(() -> {
 						player = new MP3Player("e1.mp3");
 						player.playOneTime();
-						
-						//player.end = true;
-						
-						/**player = new MP3Player("e2.mp3");
-						player.playOneTime();*/
 					});
+					
 					playerThread.start();
 					
 					Thread playerThread1 = new Thread(() -> {
@@ -303,7 +279,8 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			}
 
 			repaint();
-
+			
+			//Змінюємо кадри бігу
 			if (running == 1) {
 				if(f == 5) {
 					f = 0;
@@ -316,35 +293,15 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				f = 0;
 			}
 
-			/**if (ImageUtils.hasBlackPixelOnVerticalLine("run"+f+".png", panelHeight)) {
-				System.exit(0);
-			}*/
-
+			//Це тестовий квадратик для колізій
 			rx -= 20;
-
 			if (rx + 50 <= 0) {
 				rx = getWidth();
 			}
 			
 			repaint();
 			
-			
-
-			if(running == 2) {
-				//if (currentY <= 500 && direction == -1) {
-				//  direction = 1;
-				//}
-				/*else if (currentY >= startY && direction == 1) {
-                	running = 0;
-                	timer3.stop();       
-                }*/
-				//else if (currentY >= startY && direction == 1) {
-				//running = 1;
-				//timer3.stop();   
-				//}
-
-
-
+			if (running == 2) {
 				if (i == 3) {
 					d = 17;
 				}
@@ -372,51 +329,25 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					enableJump = true;
 					enableCrouch = true;
 					running = 1;
-					currentY = 0;
-					//x = 10 + frameWidth/div;
+					currentDeltaY = 0;
+					
+					//Change collision mask
 					x = paddingStart + frameWidth/div;
-					//int y = this.getHeight()-this.frameHeight - currentY -;
-					y = 960 - this.frameHeight + 30 - currentY;
+					y = 960 - this.frameHeight + 30 - currentDeltaY;
 					System.out.println(x);
 					System.out.println(y);
-					//width = frameWidth/2;
 					width = (int) (frameWidth/widthMaskSetting);
 					height = 350;
 				}
 
-				/**if (i < 15) {
-					d -= 2;
-				}
-				else if (i == 15) {
-					d = -d;
-				}
-				else if (i < 30 && i > 15) {
-					d -= 2;
-				}
-				else if (i == 30) {
-					d = 25;
-					i=0;
-					enableJump = true;
-					running = 1;
-					currentY = 0;
-				}*/
-
-				//currentY = currentY + direction;
-
-				currentY  = currentY + d;
+				currentDeltaY  = currentDeltaY + d;
 
 				if (running == 2 && i != 24) {
-					y = 960 - this.frameHeight + 30 - currentY;
+					y = 960 - this.frameHeight + 30 - currentDeltaY;
 				}
 
 				i++;
-				//repaint();
-				//}
 			}
-
-			/*y = 960 - this.frameHeight + 30 - currentY;*/
-
-			//repaint();
 		});
 
 		//Timer for crouch animations
@@ -424,50 +355,35 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			if(standUp == false) {
 				if (running == 0 && enableCrouch  == true) {
 					if(f1  == 2 || f1 == 3) {
-						//f1 = 3;
-						//crouch = true;
 						if (f1 == 3) {
 							f1  = 2;
 						}
 						else if (f1 == 2) {
 							f1 = 3;
 						}
-						//repaint();
 					}
 					else {
 						if (f1 == 0) {
-							//x = 10 + frameWidth/div;
 							x = paddingStart + frameWidth/div;
-							//int y = this.getHeight()-this.frameHeight - currentY -;
-							//y = 960 - this.frameHeight + 30 - currentY;
 							y = 960 - this.frameHeight + 30;
 							System.out.println(x);
 							System.out.println(y);
-							//width = frameWidth/2;
 							width = (int) (frameWidth/widthMaskSetting);
 							height = 350;
 						}
 						if (f1 == 0) {
-							//x = 10 + frameWidth/div;
 							x = paddingStart + frameWidth/div;
-							//int y = this.getHeight()-this.frameHeight - currentY -;
-							//y = 960 -this.frameHeight + 30 + 55 + 25 - currentY;
 							y = 960 -this.frameHeight + 30 + 55;
 							System.out.println(x);
 							System.out.println(y);
-							//width = frameWidth/2;
 							width = (int) (frameWidth/widthMaskSetting);
 							height = 350 - 55;
 						}
 						if (f1 == 1) {
-							//x = 10 + frameWidth/div;
 							x = paddingStart + frameWidth/div;
-							//int y = this.getHeight()-this.frameHeight - currentY -;
-							//y = 960 - this.frameHeight + 30 + 125 + 25 - currentY;
 							y = 960 - this.frameHeight + 30 + 125;
 							System.out.println(x);
 							System.out.println(y);
-							//width = frameWidth/2;
 							width = (int) (frameWidth/widthMaskSetting);
 							height = 350 - 125;
 						}
@@ -477,34 +393,24 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				}
 			}
 			else {
-				//f1--;
 				if(f1 == 2 || f1== 3) {
-					//x = 10 + frameWidth/div;
 					x = paddingStart + frameWidth/div;
-					//int y = this.getHeight()-this.frameHeight - currentY -;
-					//y = 960 - this.frameHeight + 30 + 55 + 25 - currentY;
 					y = 960 - this.frameHeight + 30 + 55;
 					System.out.println(x);
 					System.out.println(y);
-					//width = frameWidth/2;
 					width = (int) (frameWidth/widthMaskSetting);
 					height = 350 - 55;
 					f1 = 1;
 					repaint();
 				}
 				else if (f1 == 1) {
-					//x = 10 + frameWidth/div;
 					x = paddingStart + frameWidth/div;
-					//int y = this.getHeight()-this.frameHeight - currentY -;
-					//y = 960 - this.frameHeight + 30 + 25 - currentY;
 					y = 960 - this.frameHeight + 30;
 					System.out.println(x);
 					System.out.println(y);
-					//width = frameWidth/2;
 					width = (int) (frameWidth/widthMaskSetting);
 					height = 350;
 					f1--;
-					//sil.stop();
 					repaint();
 				}
 				else if (f1 == 0) {
@@ -513,26 +419,12 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					repaint();
 					enableJump = true;
 					enableCrouch = true;
-				}
-				
+				}	
 			}
-
-			//repaint();
 		});
 
 		timer.start();
 		timer1.start();
-
-
-		//timer3 = new Timer(20, e -> {
-		//@Override
-		//public void actionPerformed(ActionEvent e) {
-
-		//});
-
-		//timer3.start();
-
-
 	}
 
 	@Override
@@ -551,10 +443,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 				player.stop();
 
-				/*player = new MP3Player("1.mp3");
-
-				player.play();*/
-
 				playerThread = new Thread(() -> {
 					player = new MP3Player("1.mp3");
 					player.play();
@@ -570,10 +458,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				backgroundImage3 = new ImageIcon("Game_suburb1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
 
 				player.stop();
-
-				/*player = new MP3Player("2.mp3");
-
-				player.play();*/
 
 				playerThread = new Thread(() -> {
 					player = new MP3Player("2.mp3");
@@ -591,10 +475,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 				player.stop();
 
-				/*player = new MP3Player("3.mp3");
-
-				player.play();*/
-
 				playerThread = new Thread(() -> {
 					player = new MP3Player("3.mp3");
 					player.play();
@@ -604,14 +484,8 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			}
 		}
 
-		if (e.getID() == KeyEvent.KEY_PRESSED) { // Если кнопка была нажата (т.е. сейчас она зажата)
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				//man.startRunningLeft();
-			} else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				//man.startRunningRight();
-			}
-			else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-				//man.startRunningRight();
+		if (e.getID() == KeyEvent.KEY_PRESSED) {
+			if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 				standUp = false;
 				enableJump = false;
 				//enableCrouch = false;
@@ -622,32 +496,22 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			}
 			else if (e.getKeyCode() == KeyEvent.VK_UP) {
 				enableCrouch = false;
-				//man.startRunningRight();
 				if (enableJump == true) {
 					running = 2;
 					enableJump = false;
 					enableCrouch = false;
-					//x = 10 + frameWidth/div;
 					x = paddingStart + frameWidth/div;
-					//y = 960 -this.frameHeight + 30 - currentY;
 					y = 960 - this.frameHeight + 30;
 					System.out.println(x);
 					System.out.println(y);
-					//width = frameWidth/2;
 					width = (int) (frameWidth/widthMaskSetting);
 					height = 280;
 				}
-				//timer3.start();
 			}
 		}
 
-		if (e.getID() == KeyEvent.KEY_RELEASED) {     // Если кнопка была отпущена - мы должны прекратить бег
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) { // но только бег в ту сторону, которой соответствует отпущенная кнопка
-				//man.stopRunningLeft();
-			} else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				//man.stopRunningRight();
-			}
-			else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+		if (e.getID() == KeyEvent.KEY_RELEASED) {
+			if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 				//man.stopRunningRight();
 				//running = 1;
 				//sil.stop();
@@ -681,10 +545,8 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			startY = panelHeight-this.frameHeight-100;
 			Image buffer = createImage(panelWidth, panelHeight);
 			Graphics2D g2d = (Graphics2D) buffer.getGraphics();
-			//g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g2d.setComposite(AlphaComposite.SrcOver);
 
-			//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, -frameWidth, frameHeight, null);
 
 			for (int x = xCoordinate3; x < panelWidth; x += backgroundImage3.getWidth(null)) {
 				g2d.drawImage(backgroundImage3, x, 0, null);
@@ -699,6 +561,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			for (int x = xCoordinate1; x < panelWidth; x += backgroundImage1.getWidth(null)) {
 				g2d.drawImage(backgroundImage1, x, 0, null);
 				
+				//Малює маску колізії (потім прибрати)
 				g2d.setColor(Color.WHITE);
 				g2d.fillRect(0, 0, WIDTH, HEIGHT);
 				g2d.setColor(Color.WHITE);
@@ -712,9 +575,10 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				}
 				else if (running == 2) {
 					//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight - currentY, frameWidth, frameHeight, null);
-					g2d.drawImage(jump , 10, panelHeight-this.frameHeight - currentY, frameWidth, frameHeight, null);
+					g2d.drawImage(jump , 10, panelHeight-this.frameHeight - currentDeltaY, frameWidth, frameHeight, null);
 				}
 
+				//Тестова перешкода
 				g2d.setColor(Color.WHITE);
 				g2d.fillRect(0, 0, WIDTH, HEIGHT);
 				g2d.setColor(Color.BLACK);
@@ -727,6 +591,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				g2d.fillRect(this.x, y, width, height);*/
 			}
 
+			
 			//g2d.drawImage(frames[f], frameWidth, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
 
 			g.drawImage(buffer, 0, 0, null);
@@ -749,8 +614,10 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 * @return boolean
 	 * @author Krasovskyy Andrii
 	 */
-	public boolean getIntersection(Rectangle other) {
+	public boolean getIntersection (Rectangle other) {
+		//Якщо працюєте зі справжніми перешкодами, то це закоментуйте
 		other = new Rectangle(rx, ry, 50, 50);
+		
 		int x1 = Math.max(this.x, other.x);
 		int y1 = Math.max(this.y, other.y);
 		int x2 = Math.min(this.x + this.width, other.x + other.width);
@@ -776,7 +643,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 		/**MovingBackground backgroundPanel1 = new MovingBackground(200, 20);
         frame.add(backgroundPanel1);*/
 
-		MovingBackground backgroundPanel = new MovingBackground(0, 10);
+		MovingBackground backgroundPanel = new MovingBackground(10);
 		frame.add(backgroundPanel);
 
 		frame.pack();
@@ -796,7 +663,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 		
 		//Currently disabled music
 		playerThread.start();
-
 	}
 }
 
