@@ -1,10 +1,7 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.xml.namespace.QName;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -18,7 +15,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	/**
 	 * Game state
 	 */
-	boolean end = false;
+	public boolean end = false;
 
 	/**
 	 * Player for background music
@@ -149,7 +146,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	int rx = 1700;
 	int ry = 1700;
 
-	Rectangle rect1 = new Rectangle(1700, 1700, 50, 50);
+	Rectangle rect1;
 
 	/**
 	 * Jump frame
@@ -184,16 +181,88 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 */
 	private boolean collided = false;
 
+	/**
+	 * Flag for finishing fall animation
+	 */
 	private boolean finishFall = false;
 
 	/**
+	 * Contains obstacle
+	 */
+	private Barrier barrier;
+
+	/**
+	 * Image of obstacle
+	 */
+	private BufferedImage barrierFileName;
+
+	int location;
+
+	private int windowWidth;
+
+	private int windowHeight;
+
+	/**
+	 * Filename to load background music
+	 */
+	private static String filename;
+
+	private int obstaclesLeft;
+
+	private int animationSpeed;
+
+	JFrame frame;
+
+	boolean isPause = false;
+
+	JLabel obstacAmount;
+
+	/**
+	 * Describes state of current JPanel
+	 */
+	boolean isFinished = false;
+
+	/**
 	 * Class constructor (starts the GUI and timer animations)
-	 * @param n
 	 * @param t
 	 * @throws IOException
 	 * @author Krasovskyy Andrii
 	 */
-	public MovingBackground(int t) throws IOException {
+	public MovingBackground(int t, int location, int obstacleSpeed, int animationSpeed, String filename, int obstaclesLeft, JFrame frame) throws IOException {
+
+		MovingBackground.filename = filename;
+
+		this.location = location;
+
+		this.obstaclesLeft = obstaclesLeft;
+
+		this.frame = frame;
+
+		// Получаем экземпляр класса Toolkit
+		Toolkit toolkit = Toolkit.getDefaultToolkit();
+
+		// Получаем размер экрана в пикселях
+		Dimension screenSize = toolkit.getScreenSize();
+		windowWidth = screenSize.width;
+		windowHeight = (int) (screenSize.height*0.95);
+
+		GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice device = env.getDefaultScreenDevice();
+		GraphicsConfiguration config = device.getDefaultConfiguration();
+
+		Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(config);
+		//Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
+		int toolbarHeight = insets.top + insets.bottom;
+
+		windowWidth = screenSize.width;
+		windowHeight = screenSize.height - toolbarHeight;
+
+		System.out.println(windowWidth + "-" + windowHeight + "-" + toolbarHeight);
+
+
+		System.out.println("width: " + windowWidth);
+		System.out.println("height: " + windowHeight);
 
 		KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
 		manager.addKeyEventDispatcher(this);
@@ -201,17 +270,38 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 		//Встановлюємо розмір кадру анімації персонажа
 		this.frameWidth = ImageIO.read(new File("run1.png")).getWidth()/10;
 		this.frameHeight = ImageIO.read(new File("run1.png")).getHeight()/10;
+		System.out.println(frameWidth + "-" + frameHeight);
 
 		//Встановлюємо координати маски колізії та її розмір (для персонажа)
 		x = paddingStart + frameWidth/div;
-		y = 960 - this.frameHeight + 30 - currentDeltaY;
+		y = (int) (windowHeight - this.frameHeight - currentDeltaY + 30);
 		System.out.println(x);
 		System.out.println(y);
 		width = (int) (frameWidth/widthMaskSetting);
 		height = 350;
 
-		rx = 1700;
-		ry = 800;
+		barrier = new Barrier(this.location);
+		barrierFileName = ImageIO.read(new File(barrier.getFileName()));
+		rx = barrier.getX();
+		ry = barrier.getY();
+		rect1 = new Rectangle(rx, ry, barrier.collisionWidth, barrier.collisionHeight);
+
+		if(location == 1){
+			obstacAmount = new JLabel(obstaclesLeft + " / 15");
+			obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+			obstacAmount.setBounds(50, 50 , 100, 50);
+			add(obstacAmount);
+		}else if(location == 2){
+			obstacAmount = new JLabel(obstaclesLeft + " / 20");
+			obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+			obstacAmount.setBounds(50, 50 , 100, 50);
+			add(obstacAmount);
+		}else{
+			obstacAmount = new JLabel(obstaclesLeft + " / 25");
+			obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+			obstacAmount.setBounds(50, 50 , 100, 50);
+			add(obstacAmount);
+		}
 
 		frames = new BufferedImage[6];
 
@@ -235,15 +325,44 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 		jump = ImageIO.read(new File("jump.png"));
 
+		playerThread = new Thread(() -> {
+			player = new MP3Player(filename);
+			player.play();
+		});
+
+		playerThread.start();
+
 		//Параметри для стрибка
 		currentDeltaY = 0;
 		direction = -15;
 
-		backgroundImage1 = new ImageIcon("Game_village1_village_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
+		switch (this.location) {
+		case 1: {
+			backgroundImage1 = new ImageIcon("Game_city1_city.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
 
-		backgroundImage2 = new ImageIcon("Game_village1_back_mount_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
+			backgroundImage2 = new ImageIcon("Game_city1_back_city.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
 
-		backgroundImage3 = new ImageIcon("Game_village1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
+			backgroundImage3 = new ImageIcon("Game_city1_back_sky.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+			break;
+		}
+		case 2:{
+			backgroundImage1 = new ImageIcon("Game_suburb1_city.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+
+			backgroundImage2 = new ImageIcon("Game_suburb1_back_city.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+
+			backgroundImage3 = new ImageIcon("Game_suburb1_back_sky.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+			break;
+		}
+		case 3:{
+			backgroundImage1 = new ImageIcon("Game_village1_village.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+
+			backgroundImage2 = new ImageIcon("Game_village1_back_mount.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+
+			backgroundImage3 = new ImageIcon("Game_village1_back_sky.png").getImage().getScaledInstance(windowWidth, windowHeight, 0);
+			break;
+		}
+		}
+
 
 		xCoordinate1 = 0;
 
@@ -269,12 +388,56 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			}
 		});
 
+
+		Timer barrierTimer = new Timer(obstacleSpeed, e -> {
+			if (end == false) {
+				rx -= 20;
+				if (rx <= -250) {
+					barrier = new Barrier(this.location);
+					try {
+						barrierFileName = ImageIO.read(new File(barrier.getFileName()));
+						this.obstaclesLeft--;
+						if (this.obstaclesLeft <= 0) {
+							end = true;
+							if(location == 1){
+								GoSecond goSecond = new GoSecond();
+								this.removeAll();
+								frame.dispose();
+								cleanup();
+							}else if(location == 2){
+								GoThird goThird = new GoThird();
+								this.removeAll();
+								frame.dispose();
+								cleanup();
+							}else{
+								Win win = new Win(this);
+								this.removeAll();
+								frame.dispose();
+								cleanup();
+							}
+							isFinished = true;
+							System.out.println("END OF LEVEL!!!");
+						}
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					rx = barrier.getX();
+					ry = barrier.getY();
+					rect1 = new Rectangle(rx, ry, barrier.collisionWidth, barrier.collisionHeight);
+				}
+
+				repaint();
+			}
+		});
+
+
 		//Timer for running and jumping animations
-		Timer timer1 = new Timer(80, e -> {
-			if(end == false) {
+		Timer timer1 = new Timer(animationSpeed, e -> {
+			if(!end) {
 				//Here should be your collision check (add checking through masks ArrayList)
 				//It's quite possible to move check in a separate method
-				if (getIntersection(rect1)) {
+				Rectangle other = new Rectangle(rx, ry, barrier.getCollisionWidth(), barrier.getCollisionHeight());
+				if (getIntersection(other)) {
 					if (crouchTimer.isRunning()) {
 						crouchTimer.stop();
 					}
@@ -286,38 +449,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 						f2 = 2;
 					}
 					running = 3;
-					//end = true;
-					/*if (end == true && allowEndSound  == true) {
-						allowEndSound = false;
-
-						playerThread = new Thread(() -> {
-							player = new MP3Player("e1.mp3");
-							player.playOneTime();
-						});
-
-						playerThread.start();
-
-						Thread playerThread1 = new Thread(() -> {
-							MP3Player player1 = new MP3Player("e2.mp3");
-							player1.playOneTime();						
-							allowEndSound = false;
-						});
-
-						playerThread1.start();
-					}*/	
-
-					//Currently disabled music
-					//playerThread.start();
-					//player.end = true;
 				}
-
-				//Це тестовий квадратик для колізій
-				rx -= 20;
-				if (rx + 50 <= 0) {
-					rx = getWidth();
-				}
-
-				repaint();
 
 				//Змінюємо кадри бігу
 				if (running == 1) {
@@ -354,11 +486,40 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 							Thread playerThread1 = new Thread(() -> {
 								MP3Player player1 = new MP3Player("e2.mp3");
-								player1.playOneTime();						
+								player1.playOneTime();
 								allowEndSound = false;
 							});
-
 							playerThread1.start();
+
+							isFinished = true;
+
+							Runtime runtime = Runtime.getRuntime();
+							long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+							long maxMemory = runtime.maxMemory();
+
+							System.out.println("Використано пам'яті: " + usedMemory / (1024 * 1024) + " МБ");
+							System.out.println("Максимально доступна пам'ять: " + maxMemory / (1024 * 1024) + " МБ");
+
+							Lost lost = new Lost(this);
+
+							runtime = Runtime.getRuntime();
+							usedMemory = runtime.totalMemory() - runtime.freeMemory();
+							maxMemory = runtime.maxMemory();
+
+							System.out.println("Використано пам'яті: " + usedMemory / (1024 * 1024) + " МБ");
+							System.out.println("Максимально доступна пам'ять: " + maxMemory / (1024 * 1024) + " МБ");
+
+							this.removeAll();
+							frame.dispose();
+							frame.removeAll();
+							cleanup();
+
+							runtime = Runtime.getRuntime();
+							usedMemory = runtime.totalMemory() - runtime.freeMemory();
+							maxMemory = runtime.maxMemory();
+
+							System.out.println("Використано пам'яті: " + usedMemory / (1024 * 1024) + " МБ");
+							System.out.println("Максимально доступна пам'ять: " + maxMemory / (1024 * 1024) + " МБ");
 						}
 					}
 
@@ -390,12 +551,11 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 						d = 25;
 						i=0;
 						currentDeltaY = 0;
-						//if(running == 2) {
 						if (running == 2) {
 							enableJump = true;
 							enableCrouch = true;
 						}
-						
+
 						if(running == 2) {
 							running = 1;
 						}
@@ -403,24 +563,21 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 							running = 3;
 						}
 
-						//running = 1;
 						currentDeltaY = 0;
 
 						//Change collision mask
 						x = paddingStart + frameWidth/div;
-						y = 960 - this.frameHeight + 30 - currentDeltaY;
+						y = (int) (windowHeight - this.frameHeight - currentDeltaY + 30);
 						System.out.println(x);
 						System.out.println(y);
 						width = (int) (frameWidth/widthMaskSetting);
 						height = 350;
-
-						//}
 					}
 
 					currentDeltaY  = currentDeltaY + d;
 
 					if (running == 2 && i != 24) {
-						y = 960 - this.frameHeight + 30 - currentDeltaY;
+						y = (int) (windowHeight - this.frameHeight - currentDeltaY + 30);
 					}
 
 					i++;
@@ -429,7 +586,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 		});
 
 		//Timer for crouch animations
-		crouchTimer = new Timer(80, e -> {
+		crouchTimer = new Timer(animationSpeed, e -> {
 			if(standUp == false) {
 				if (running == 0 && enableCrouch  == true) {
 					if(f1  == 2 || f1 == 3) {
@@ -443,7 +600,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					else {
 						if (f1 == 0) {
 							x = paddingStart + frameWidth/div;
-							y = 960 - this.frameHeight + 30;
+							y = (int) (windowHeight - this.frameHeight + 30);
 							System.out.println(x);
 							System.out.println(y);
 							width = (int) (frameWidth/widthMaskSetting);
@@ -451,7 +608,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 						}
 						if (f1 == 0) {
 							x = paddingStart + frameWidth/div;
-							y = 960 -this.frameHeight + 30 + 55;
+							y = (int) (windowHeight - this.frameHeight + 30 + 55);
 							System.out.println(x);
 							System.out.println(y);
 							width = (int) (frameWidth/widthMaskSetting);
@@ -459,21 +616,21 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 						}
 						if (f1 == 1) {
 							x = paddingStart + frameWidth/div;
-							y = 960 - this.frameHeight + 30 + 125;
+							y = (int) (windowHeight - this.frameHeight + 30 + 125);
 							System.out.println(x);
 							System.out.println(y);
 							width = (int) (frameWidth/widthMaskSetting);
 							height = 350 - 125;
 						}
 						repaint();
-						f1++;	
+						f1++;
 					}
 				}
 			}
 			else {
 				if(f1 == 2 || f1== 3) {
 					x = paddingStart + frameWidth/div;
-					y = 960 - this.frameHeight + 30 + 55;
+					y = (int) (windowHeight - this.frameHeight + 30 + 55);
 					System.out.println(x);
 					System.out.println(y);
 					width = (int) (frameWidth/widthMaskSetting);
@@ -483,7 +640,7 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 				}
 				else if (f1 == 1) {
 					x = paddingStart + frameWidth/div;
-					y = 960 - this.frameHeight + 30;
+					y = (int) (windowHeight - this.frameHeight + 30);
 					System.out.println(x);
 					System.out.println(y);
 					width = (int) (frameWidth/widthMaskSetting);
@@ -497,12 +654,13 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 					repaint();
 					enableJump = true;
 					enableCrouch = true;
-				}	
+				}
 			}
 		});
 
 		timer.start();
 		timer1.start();
+		barrierTimer.start();
 	}
 
 	@Override
@@ -511,98 +669,60 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 * @author Krasovskyy Andrii
 	 */
 	public boolean dispatchKeyEvent(KeyEvent e) {
-		if (collided == false) {
-			if (e.getID() == KeyEvent.KEY_PRESSED) {
-				if (e.getKeyCode() == KeyEvent.VK_1) {
-					backgroundImage1 = new ImageIcon("Game_city1_city.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage2 = new ImageIcon("Game_city1_back_city.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage3 = new ImageIcon("Game_city1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					player.stop();
-
-					playerThread = new Thread(() -> {
-						player = new MP3Player("1.mp3");
-						player.play();
-					});
-
-					playerThread.start();
-
-				} else if (e.getKeyCode() == KeyEvent.VK_2) {
-					backgroundImage1 = new ImageIcon("Game_suburb1_city_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage2 = new ImageIcon("Game_suburb1_back_city_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage3 = new ImageIcon("Game_suburb1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					player.stop();
-
-					playerThread = new Thread(() -> {
-						player = new MP3Player("2.mp3");
-						player.play();
-					});
-
-					playerThread.start();
-				}
-				else if (e.getKeyCode() == KeyEvent.VK_3) {
-					backgroundImage1 = new ImageIcon("Game_village1_village_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage2 = new ImageIcon("Game_village1_back_mount_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					backgroundImage3 = new ImageIcon("Game_village1_back_sky_Монтажная область 1.png").getImage().getScaledInstance(1800, 960, 0);
-
-					player.stop();
-
-					playerThread = new Thread(() -> {
-						player = new MP3Player("3.mp3");
-						player.play();
-					});
-
-					playerThread.start();
-				}
-			}
-
-			if (e.getID() == KeyEvent.KEY_PRESSED) {
-				if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-					standUp = false;
-					enableJump = false;
-					//enableCrouch = false;
-					if (enableCrouch == true) {
-						running = 0;
-						crouchTimer.start();
-					}
-				}
-				else if (e.getKeyCode() == KeyEvent.VK_UP) {
-					enableCrouch = false;
-					if (enableJump == true) {
-						running = 2;
+		if(!isFinished) {
+			if (collided == false && end == false) {
+				if (e.getID() == KeyEvent.KEY_PRESSED) {
+					if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+						standUp = false;
 						enableJump = false;
+						if (enableCrouch == true) {
+							running = 0;
+							crouchTimer.start();
+						}
+					}
+					else if (e.getKeyCode() == KeyEvent.VK_UP) {
 						enableCrouch = false;
-						x = paddingStart + frameWidth/div;
-						y = 960 - this.frameHeight + 30;
-						System.out.println(x);
-						System.out.println(y);
-						width = (int) (frameWidth/widthMaskSetting);
-						height = 280;
+						if (enableJump == true) {
+							running = 2;
+							enableJump = false;
+							enableCrouch = false;
+							x = paddingStart + frameWidth/div;
+							y = windowHeight - this.frameHeight + 30;
+							System.out.println(x);
+							System.out.println(y);
+							width = (int) (frameWidth/widthMaskSetting);
+							height = 280;
+						}
 					}
 				}
+
 			}
 
 			if (e.getID() == KeyEvent.KEY_RELEASED) {
 				if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-					//man.stopRunningRight();
-					//running = 1;
-					//sil.stop();
-					//f1=0;
 					standUp = true;
-					/*x = 10 + frameWidth/4;
-				//int y = this.getHeight()-this.frameHeight - currentY -;
-				y = 960 -this.frameHeight + 30 - currentY;
-				System.out.println(x);
-				System.out.println(y);
-				width = frameWidth/2;
-				height = 350;*/
+				}
+			}
+
+
+			if (e.getID() == KeyEvent.KEY_PRESSED) {
+				if (e.getKeyCode() == KeyEvent.VK_SPACE && !isPause) {
+					if(end == true && isPause == true) {
+						end = false;
+					}
+					else {
+						end = true;
+						isPause = true;
+						Pause pause = new Pause(this, frame);
+						pause.setVisible(true);
+						if(!end){
+							try {
+								Thread.sleep(1000);
+							} catch (InterruptedException ex) {
+								throw new RuntimeException(ex);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -616,7 +736,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 * @author Krasovskyy Andrii
 	 */
 	protected void paintComponent(Graphics g) {
-		//if(end == false) {
 		super.paintComponent(g);
 
 		int panelWidth = getWidth();
@@ -628,71 +747,70 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 
 
 		for (int x = xCoordinate3; x < panelWidth; x += backgroundImage3.getWidth(null)) {
-			g2d.drawImage(backgroundImage3, x, 0, null);
-			//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
+			g2d.drawImage(backgroundImage3, x, 0, panelWidth, panelHeight, null);
 		}
 
 		for (int x = xCoordinate2; x < panelWidth; x += backgroundImage2.getWidth(null)) {
-			g2d.drawImage(backgroundImage2, x, 0, null);
-			//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
+			g2d.drawImage(backgroundImage2, x, 0, panelWidth, panelHeight, null);
 		}
 
 		for (int x = xCoordinate1; x < panelWidth; x += backgroundImage1.getWidth(null)) {
-			g2d.drawImage(backgroundImage1, x, 0, null);
+			g2d.drawImage(backgroundImage1, x, 0, panelWidth, panelHeight, null);
 
-			//Малює маску колізії (потім прибрати)
+			//Малює маску колізії (потім прибрати) (devtools)
 			/*g2d.setColor(Color.WHITE);
 			g2d.fillRect(0, 0, WIDTH, HEIGHT);
 			g2d.setColor(Color.WHITE);
 			g2d.fillRect(this.x, y, width, height);*/
 
 			if (running == 1) {
-				g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
+				g2d.drawImage(frames[f], 10, windowHeight-this.frameHeight, frameWidth, frameHeight, null);
 			}
 			else if (running == 0) {
-				g2d.drawImage(framesCrouch[f1], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
+				g2d.drawImage(framesCrouch[f1], 10, windowHeight-this.frameHeight, frameWidth, frameHeight, null);
 			}
 			else if (running == 2) {
-				//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight - currentY, frameWidth, frameHeight, null);
-				g2d.drawImage(jump , 10, panelHeight-this.frameHeight - currentDeltaY, frameWidth, frameHeight, null);
+				g2d.drawImage(jump , 10, windowHeight-this.frameHeight - currentDeltaY, frameWidth, frameHeight, null);
 			}
 			else if (running == 3) {
-				//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight - currentY, frameWidth, frameHeight, null);
 				if (f2 == 0 || f2 == 1) {
-					//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
-
-					g2d.drawImage(framesFall[f2] , 10, panelHeight-this.frameHeight, (int) (frameWidth*1.27), frameHeight, null);
+					g2d.drawImage(framesFall[f2] , 10, windowHeight-this.frameHeight, (int) (frameWidth*1.27), frameHeight, null);
 				}
 				if (f2 == 2 || f2 == 3) {
-					//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
-
-					g2d.drawImage(framesFall[f2] , 10, panelHeight-this.frameHeight, (int) (frameWidth*1.45), frameHeight, null);
+					g2d.drawImage(framesFall[f2] , 10, windowHeight-this.frameHeight, (int) (frameWidth*1.45), frameHeight, null);
 				}
 				if (f2 == 4) {
-					//g2d.drawImage(frames[f], 10, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
-					//g2d.drawImage(framesFall[f2] , 10, panelHeight-this.frameHeight - currentDeltaY + 280, (int) (frameWidth*1.7/1.5), (int) (frameHeight), null);
-					g2d.drawImage(framesFall[f2] , 10, panelHeight-this.frameHeight + 245, (int) (frameHeight/1.1), (int) (frameWidth/(1.7*1.1)), null);
+					g2d.drawImage(framesFall[f2] , 10, windowHeight-this.frameHeight + 245, (int) (frameHeight/1.1), (int) (frameWidth/(1.7*1.1)), null);
 				}
 			}
 
-			//Тестова перешкода
-			g2d.setColor(Color.WHITE);
-			g2d.fillRect(0, 0, WIDTH, HEIGHT);
-			g2d.setColor(Color.BLACK);
-			g2d.fillRect(rx, ry, 50, 130);
-			getIntersection(rect1);
 
-			/*g2d.setColor(Color.WHITE);
-				g2d.fillRect(0, 0, WIDTH, HEIGHT);
-				g2d.setColor(Color.BLACK);
-				g2d.fillRect(this.x, y, width, height);*/
+			g2d.drawImage(barrierFileName, rx, ry, rect1.width, rect1.height, null);
+
+			remove(obstacAmount);
+			if(location == 1){
+				obstacAmount = new JLabel(15 - obstaclesLeft + " / 15");
+				obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+				obstacAmount.setBounds(50, 50 , 150, 50);
+				add(obstacAmount);
+			}else if(location == 2){
+				obstacAmount = new JLabel(20 - obstaclesLeft + " / 20");
+				obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+				obstacAmount.setBounds(50, 50 , 150, 50);
+				add(obstacAmount);
+			}else{
+				obstacAmount = new JLabel(25 - obstaclesLeft + " / 25");
+				obstacAmount.setFont(new Font(Font.SERIF, Font.PLAIN,  35));
+				obstacAmount.setBounds(50, 50 , 150, 50);
+				add(obstacAmount);
+			}
+
+			//Theese two lines are for drawing obstacle collision mask (devtool)
+			//g2d.setColor(Color.BLACK);
+			//g2d.fillRect(rx, ry, barrier.getCollisionWidth(), barrier.getCollisionHeight());
 		}
 
-
-		//g2d.drawImage(frames[f], frameWidth, panelHeight-this.frameHeight, frameWidth, frameHeight, null);
-
 		g.drawImage(buffer, 0, 0, null);
-		//}
 	}
 
 	@Override
@@ -712,9 +830,6 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 	 * @author Krasovskyy Andrii
 	 */
 	public boolean getIntersection (Rectangle other) {
-		//Якщо працюєте зі справжніми перешкодами, то це закоментуйте
-		other = new Rectangle(rx, ry, 50, 50);
-
 		int x1 = Math.max(this.x, other.x);
 		int y1 = Math.max(this.y, other.y);
 		int x2 = Math.min(this.x + this.width, other.x + other.width);
@@ -724,45 +839,35 @@ public class MovingBackground extends JPanel implements KeyEventDispatcher {
 			return false;
 		}
 
-		//int intersectionWidth = x2 - x1;
-		//int intersectionHeight = y2 - y1;
 		System.out.println("Collision!");
 		return true;
-
-		//return new Rectangle(x1, y1, intersectionWidth, intersectionHeight);
 	}
 
-	public static void main(String[] args) throws IOException {
-		JFrame frame = new JFrame("Moving Background");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setResizable(false);
+	/**
+	 * Cleanup method to release resources (up to 1 GB)
+	 */
+	public void cleanup() {
+		player.stop();
+		playerThread.interrupt();
 
-		/**MovingBackground backgroundPanel1 = new MovingBackground(200, 20);
-        frame.add(backgroundPanel1);*/
+		backgroundImage1 = null;
+		backgroundImage2 = null;
+		backgroundImage3 = null;
+		jump = null;
 
-		MovingBackground backgroundPanel = new MovingBackground(10);
-		frame.add(backgroundPanel);
+		frames = null;
+		framesCrouch = null;
+		framesFall = null;
 
-		frame.pack();
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
+		barrierFileName = null;
+		rect1 = null;
+		obstacAmount = null;
 
-		//player = new MP3Player("ForceMaker.mp3");
+		frame = null;
 
-		/**player = new MP3Player("3.mp3");
-
-		player.play();*/
-
-		playerThread = new Thread(() -> {
-			player = new MP3Player("3.mp3");
-			player.play();
-		});
-
-		//Currently disabled music
-		playerThread.start();
+		System.gc();
 	}
 }
-
 
 
 

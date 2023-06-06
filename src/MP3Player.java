@@ -1,4 +1,3 @@
-
 import javazoom.jl.player.Player;
 import java.io.FileInputStream;
 
@@ -36,7 +35,7 @@ public class MP3Player {
 	}
 
 	/**
-	 * Plays mp3 track in cycle
+	 * Plays mp3 track
 	 */
 	public void playOneTime() {
 		try {
@@ -60,15 +59,6 @@ public class MP3Player {
 
 	public static void main(String[] args) {
 		MP3Player player = new MP3Player("ForceMaker.mp3");
-
-		/*Timer t1 = new Timer(1000, e-> {
-        	i++;
-        	if (i == 5) {
-        		player.stop();
-        	}
-        });
-
-        t1.start();*/
 
 		player.play();
 	}
