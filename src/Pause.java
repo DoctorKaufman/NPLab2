@@ -143,6 +143,8 @@ public class Pause extends JFrame {
             public void mousePressed(MouseEvent e) {
                 StartMenu menu = new StartMenu();
                 cleanup();
+                movingBackground.player.stop();
+                movingBackground.cleanup();
                 frame.dispose();
                 dispose();
             }
